@@ -106,10 +106,11 @@ const App = () => {
   const {
     register,
     handleSubmit,
+    getValues,
     formState: { errors },
   } = useForm({
     defaultValues: {
-      key: "a1y2PqCGPjzjwgb7lnWH7gdUE2l3CobiGkDcLzedwYJDAGIwM3yGSCiNgssj",
+      key: "",
       prompt: ":A realistic photo of a model wearing a leather jacket.",
       negative_prompt: "Low quality, unrealistic, bad cloth, warped cloth",
       init_image: "https://ifh.cc/g/zsxGxD.jpg",
@@ -130,32 +131,73 @@ const App = () => {
   const [image, setImage] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [secondApiResponse, setSecondApiResponse] = useState(null);
+  const [resultImageUrl, setResultImageUrl] = useState<string>("");
+  const [timeoutMessage, setTimeoutMessage] = useState<string | null>(null);
+  const [elapsedTime, setElapsedTime] = useState(0);
 
   const onSubmit = async (data: unknown) => {
     setLoading(true);
     setError(null);
-    setSecondApiResponse(null);
+    setResultImageUrl("");
+    setTimeoutMessage(null);
+    setElapsedTime(0);
+
     try {
       // 첫 번째 API 호출
       const response = await axios.post(
         "https://stablediffusionapi.com/api/v5/fashion",
         data
       );
-      if (response.data && response.data.result) {
+      console.log({ response });
+
+      if (response.data) {
+        if (response.data.status !== "error") {
+          const { fetch_result } = response.data;
+          // 두 번째 API 호출
+          if (fetch_result) {
+            const key = getValues("key");
+
+            // setInterval 사용
+            const intervalId = setInterval(async () => {
+              try {
+                const fetchResponse = await axios.post(fetch_result, {
+                  key,
+                });
+                // 성공 상태 확인
+                if (fetchResponse.data.status === "success") {
+                  setResultImageUrl(fetchResponse.data.output);
+                  clearInterval(intervalId);
+                  setTimeoutMessage("FetchAPI 성공");
+                }
+              } catch (error) {
+                console.error("Fetch API call failed:", error);
+                clearInterval(intervalId);
+
+                setError("Fetch API 오류가 발생했습니다.");
+              }
+            }, 14000);
+
+            // 30초 후 타임아웃
+            setTimeout(() => {
+              clearInterval(intervalId);
+              if (resultImageUrl === "") {
+                setTimeoutMessage("30초가 지나도 성공하지 못했습니다.");
+              } else {
+                setTimeoutMessage("FetchAPI 성공");
+              }
+            }, 30000);
+
+            // 경과 시간 업데이트
+            const timerId = setInterval(() => {
+              setElapsedTime((prevTime) => prevTime + 1);
+            }, 1000);
+
+            setTimeout(() => clearInterval(timerId), 30000); // 30초 후 경과 시간 타이머도 중지
+          }
+        } else {
+          window.alert(response.data.message);
+        }
         setImage(response.data.result);
-
-        // 두 번째 API 호출
-        // const secondResponse = await axios.post(
-        //   "https://modelslab.com/api/v3/fetch/5264",
-        //   {
-        //     key: data?.key,
-        //   }
-        // );
-
-        // if (secondResponse.data) {
-        //   setSecondApiResponse(secondResponse.data);
-        // }
       } else {
         setError("이미지를 가져오는 데 실패했습니다.");
       }
@@ -169,7 +211,21 @@ const App = () => {
   return (
     <Container>
       <Title>AI 이미지 생성기</Title>
-      <Form onSubmit={handleSubmit(onSubmit)}>
+      {timeoutMessage && (
+        <ResponseContainer>
+          <p style={{ color: "red" }}>{timeoutMessage}</p>
+        </ResponseContainer>
+      )}
+      {!timeoutMessage && (
+        <ResponseContainer>
+          {!!elapsedTime && (
+            <p style={{ color: "blue" }}>Fetch API 받아오는 중</p>
+          )}
+          <p>최대 시간: 30초 </p>
+          <p>경과 시간: {elapsedTime}초</p>
+        </ResponseContainer>
+      )}
+      <Form style={{ marginTop: 20 }} onSubmit={handleSubmit(onSubmit)}>
         <FormField>
           <Label htmlFor="key">API Key</Label>
           <Input
@@ -349,7 +405,7 @@ const App = () => {
 
         <FormField style={{ flex: "0 0 100%" }}>
           <Button type="submit" disabled={loading}>
-            {loading ? "생성 중..." : "이미지 생성"}
+            {loading ? "생성 요청 중..." : "이미지 생성 요청"}
           </Button>
         </FormField>
       </Form>
@@ -359,10 +415,15 @@ const App = () => {
           <StyledImage src={image} alt="Generated Fashion Model" />
         </ImageContainer>
       )}
-      {secondApiResponse && (
+      {resultImageUrl !== "" && (
         <ResponseContainer>
-          <h3>두 번째 API 응답:</h3>
-          <pre>{JSON.stringify(secondApiResponse, null, 2)}</pre>
+          <h3>결과:</h3>
+          <div style={{ display: "flex" }}>
+            <img src={resultImageUrl} width={300} height={300} alt="" />
+            <a href={resultImageUrl} download={resultImageUrl}>
+              {resultImageUrl}
+            </a>
+          </div>
         </ResponseContainer>
       )}
     </Container>
