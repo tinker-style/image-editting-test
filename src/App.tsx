@@ -213,7 +213,13 @@ const App = () => {
       <Title>AI 이미지 생성기</Title>
       {timeoutMessage && (
         <ResponseContainer>
-          <p style={{ color: "red" }}>{timeoutMessage}</p>
+          <p
+            style={{
+              color: `${timeoutMessage === "FetchAPI 성공" ? "blue" : "red"}`,
+            }}
+          >
+            {timeoutMessage}
+          </p>
         </ResponseContainer>
       )}
       {!timeoutMessage && (
