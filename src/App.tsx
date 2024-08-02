@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import axios from "axios";
 import styled from "@emotion/styled";
 import { useForm } from "react-hook-form";
@@ -146,16 +146,16 @@ const App = () => {
         setImage(response.data.result);
 
         // 두 번째 API 호출
-        const secondResponse = await axios.post(
-          "https://modelslab.com/api/v3/fetch/5264",
-          {
-            key: data?.key,
-          }
-        );
+        // const secondResponse = await axios.post(
+        //   "https://modelslab.com/api/v3/fetch/5264",
+        //   {
+        //     key: data?.key,
+        //   }
+        // );
 
-        if (secondResponse.data) {
-          setSecondApiResponse(secondResponse.data);
-        }
+        // if (secondResponse.data) {
+        //   setSecondApiResponse(secondResponse.data);
+        // }
       } else {
         setError("이미지를 가져오는 데 실패했습니다.");
       }
