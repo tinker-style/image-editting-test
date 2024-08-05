@@ -165,34 +165,45 @@ const App = () => {
                 });
                 // 성공 상태 확인
                 if (fetchResponse.data.status === "success") {
-                  setResultImageUrl(fetchResponse.data.output);
                   clearInterval(intervalId);
+                  clearInterval(timerId);
+                  clearTimeout(timeOut);
+
+                  setResultImageUrl(fetchResponse.data.output);
                   setTimeoutMessage("FetchAPI 성공");
+                } else if (fetchResponse.data.status === "error") {
+                  clearInterval(intervalId);
+                  clearInterval(timerId);
+                  clearTimeout(timeOut);
+
+                  setError("Fetch API 오류가 발생했습니다.");
                 }
               } catch (error) {
                 console.error("Fetch API call failed:", error);
                 clearInterval(intervalId);
+                clearInterval(timerId);
+                clearTimeout(timeOut);
 
                 setError("Fetch API 오류가 발생했습니다.");
               }
-            }, 14000);
+            }, 3000);
 
-            // 30초 후 타임아웃
-            setTimeout(() => {
+            // 120초 후 타임아웃
+            const timeOut = setTimeout(() => {
               clearInterval(intervalId);
               if (resultImageUrl === "") {
-                setTimeoutMessage("30초가 지나도 성공하지 못했습니다.");
+                setTimeoutMessage("120초가 지나도 성공하지 못했습니다.");
               } else {
                 setTimeoutMessage("FetchAPI 성공");
               }
-            }, 30000);
+            }, 120000);
 
             // 경과 시간 업데이트
             const timerId = setInterval(() => {
               setElapsedTime((prevTime) => prevTime + 1);
             }, 1000);
 
-            setTimeout(() => clearInterval(timerId), 30000); // 30초 후 경과 시간 타이머도 중지
+            setTimeout(() => clearInterval(timerId), 120000); // 120초 후 경과 시간 타이머도 중지
           }
         } else {
           window.alert(response.data.message);
@@ -211,6 +222,7 @@ const App = () => {
   return (
     <Container>
       <Title>AI 이미지 생성기</Title>
+      {error && <p style={{ color: "red" }}>{error}</p>}
       {timeoutMessage && (
         <ResponseContainer>
           <p
@@ -227,7 +239,7 @@ const App = () => {
           {!!elapsedTime && (
             <p style={{ color: "blue" }}>Fetch API 받아오는 중</p>
           )}
-          <p>최대 시간: 30초 </p>
+          <p>최대 시간: 120초 </p>
           <p>경과 시간: {elapsedTime}초</p>
         </ResponseContainer>
       )}
@@ -415,7 +427,6 @@ const App = () => {
           </Button>
         </FormField>
       </Form>
-      {error && <p style={{ color: "red" }}>{error}</p>}
       {image && (
         <ImageContainer>
           <StyledImage src={image} alt="Generated Fashion Model" />
